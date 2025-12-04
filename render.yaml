@@ -16,7 +16,6 @@ services:
   - type: web
     name: prowellavatarfront
     runtime: static
-    plan: free
     buildCommand: npm install && npm run build --prefix apps/frontend
     staticPublishPath: apps/frontend/dist
     envVars:
