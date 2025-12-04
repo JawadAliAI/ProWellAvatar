@@ -42,47 +42,54 @@ const getPhonemes = async ({ message, messageText = "Hello" }) => {
 
         console.log(`Looking for Rhubarb at: ${rhubarbPath}`);
 
-        if (!fs.existsSync(rhubarbPath)) {
-            console.warn(`⚠️ Rhubarb executable not found at ${rhubarbPath}. Will use fallback.`);
-            // Don't throw, just let it fall through to the catch block which handles fallback
-            throw new Error("Rhubarb not found");
+        let useRhubarb = fs.existsSync(rhubarbPath);
+
+        if (!useRhubarb) {
+            console.warn(`⚠️ Rhubarb executable not found at ${rhubarbPath}. Will use phonetic fallback.`);
         }
 
-        try {
-            // Try to run Rhubarb
-            await execCommand({
-                command: `"${rhubarbPath}" -f json -o "${jsonFile}" "${wavFile}" -r phonetic`,
-            });
-            console.log(`✅ Rhubarb lip sync done in ${new Date().getTime() - time}ms`);
-        } catch (error) {
-            console.warn("⚠️ Rhubarb not found. Using phonetic lip sync fallback...");
-
-            // Import the phonetic lip sync generator
-            const { generatePhoneticLipSyncFile } = await import("./phoneticLipSync.mjs");
-
-            // Get the audio duration using ffprobe
-            let audioDuration = 1.0;
+        if (useRhubarb) {
             try {
-                const ffprobeResult = await execCommand({
-                    command: `ffprobe -v error -show_entries format=duration -of default=noprint_wrappers=1:nokey=1 "${wavFile}"`
+                // Try to run Rhubarb
+                await execCommand({
+                    command: `"${rhubarbPath}" -f json -o "${jsonFile}" "${wavFile}" -r phonetic`,
                 });
-                audioDuration = parseFloat(ffprobeResult.stdout.trim());
-                console.log(`📏 Audio duration: ${audioDuration}s`);
-            } catch (e) {
-                console.warn("⚠️ Could not get audio duration, estimating from text");
-                // Rough estimate: ~0.15 seconds per character
-                audioDuration = messageText.length * 0.15;
+                console.log(`✅ Rhubarb lip sync done in ${new Date().getTime() - time}ms`);
+                return; // Success, exit early
+            } catch (error) {
+                console.warn("⚠️ Rhubarb execution failed. Using phonetic lip sync fallback...");
+                console.warn(error.message);
             }
-
-            // Generate phonetic lip sync based on text
-            generatePhoneticLipSyncFile({
-                text: messageText,
-                duration: audioDuration,
-                outputPath: jsonFile
-            });
-
-            console.log(`✅ Phonetic lip sync generated in ${new Date().getTime() - time}ms`);
         }
+
+        // Fallback: Use phonetic lip sync
+        console.log("Using phonetic lip sync fallback...");
+
+        // Import the phonetic lip sync generator
+        const { generatePhoneticLipSyncFile } = await import("./phoneticLipSync.mjs");
+
+        // Get the audio duration using ffprobe
+        let audioDuration = 1.0;
+        try {
+            const ffprobeResult = await execCommand({
+                command: `ffprobe -v error -show_entries format=duration -of default=noprint_wrappers=1:nokey=1 "${wavFile}"`
+            });
+            audioDuration = parseFloat(ffprobeResult.stdout.trim());
+            console.log(`📏 Audio duration: ${audioDuration}s`);
+        } catch (e) {
+            console.warn("⚠️ Could not get audio duration, estimating from text");
+            // Rough estimate: ~0.15 seconds per character
+            audioDuration = messageText.length * 0.15;
+        }
+
+        // Generate phonetic lip sync based on text
+        generatePhoneticLipSyncFile({
+            text: messageText,
+            duration: audioDuration,
+            outputPath: jsonFile
+        });
+
+        console.log(`✅ Phonetic lip sync generated in ${new Date().getTime() - time}ms`);
     } catch (error) {
         console.error(`❌ Error generating phonemes for message ${message}:`, error);
     }
