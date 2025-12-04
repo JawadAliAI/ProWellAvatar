@@ -61,20 +61,40 @@ export function Avatar(props) {
     const audioUrl = URL.createObjectURL(audioBlob);
     const audioElement = new Audio(audioUrl);
 
+    let hasEnded = false;
+    let timeoutId = null;
+
+    const handleAudioEnd = () => {
+      if (hasEnded) return; // Prevent multiple calls
+      hasEnded = true;
+      console.log("⏹️ Audio playback ended");
+      if (timeoutId) clearTimeout(timeoutId);
+      onMessagePlayed();
+    };
+
     audioElement.onloadeddata = () => {
       console.log(`🎵 Audio loaded, duration: ${audioElement.duration}s`);
       console.log(`👄 Lip sync cues: ${message.lipsync?.mouthCues?.length || 0}`);
+
+      // Set a timeout fallback in case audio doesn't play or end properly
+      const duration = audioElement.duration || 5; // Default to 5 seconds if duration unknown
+      timeoutId = setTimeout(() => {
+        console.warn("⚠️ Audio timeout - forcing message completion");
+        handleAudioEnd();
+      }, (duration + 2) * 1000); // Add 2 seconds buffer
 
       // Try to play immediately
       audioElement.play().catch(err => {
         console.error("❌ Failed to play audio (Autoplay blocked?):", err);
         setAudioBlocked(true);
         setLastError(err.message);
+        // Don't call handleAudioEnd here - let user click the unmute button
       });
     };
 
     audioElement.onplay = () => {
       console.log("▶️ Audio started playing");
+      setAudioBlocked(false); // Clear any previous blocked state
     };
 
     audioElement.ontimeupdate = () => {
@@ -84,28 +104,24 @@ export function Avatar(props) {
       }
     };
 
-    audioElement.onended = () => {
-      console.log("⏹️ Audio playback ended");
-      onMessagePlayed();
-    };
+    audioElement.onended = handleAudioEnd;
 
     audioElement.onerror = (e) => {
       console.error("❌ Audio error:", e);
+      // On error, still complete the message to unblock UI
+      handleAudioEnd();
     };
-
-    // Play the audio
-    audioElement.play().catch(err => {
-      console.error("❌ Failed to play audio:", err);
-    });
 
     setAudio(audioElement);
 
     // Cleanup
     return () => {
+      if (timeoutId) clearTimeout(timeoutId);
       if (audioElement) {
         audioElement.pause();
         audioElement.src = "";
       }
+      URL.revokeObjectURL(audioUrl);
     };
   }, [message, onMessagePlayed]);
 
