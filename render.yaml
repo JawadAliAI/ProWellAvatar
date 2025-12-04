@@ -1,0 +1,25 @@
+services:
+  - type: web
+    name: healbot-avatar
+    env: node
+    plan: free
+    buildCommand: bash ./render-build.sh
+    startCommand: node apps/backend/server.js
+    envVars:
+      - key: PORT
+        value: 3000
+      - key: PYTHON_VERSION
+        value: 3.10.0
+
+  - type: static
+    name: healbot-avatar-frontend
+    env: static
+    plan: free
+    buildCommand: npm install && npm run build --prefix apps/frontend
+    staticPublishPath: apps/frontend/dist
+    envVars:
+      - key: VITE_API_URL
+        fromService:
+          type: web
+          name: healbot-avatar
+          property: url
