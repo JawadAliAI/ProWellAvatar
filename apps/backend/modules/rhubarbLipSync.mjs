@@ -29,14 +29,23 @@ const getPhonemes = async ({ message, messageText = "Hello" }) => {
         console.log(`Conversion done in ${new Date().getTime() - time}ms`);
 
         // Resolve path to Rhubarb executable
-        // Structure: root/apps/backend/modules/rhubarbLipSync.mjs
-        // Rhubarb is at: root/Rhubarb-Lip-Sync-1.14.0-Windows/rhubarb.exe
-        const rhubarbPath = path.resolve(__dirname, "../../../Rhubarb-Lip-Sync-1.14.0-Windows/rhubarb.exe");
+        // On Render (Linux), it's installed in root/bin/rhubarb-lip-sync/rhubarb
+        // On Local (Windows), it's in root/Rhubarb-Lip-Sync-1.14.0-Windows/rhubarb.exe
+
+        let rhubarbPath;
+        if (process.platform === "win32") {
+            rhubarbPath = path.resolve(__dirname, "../../../Rhubarb-Lip-Sync-1.14.0-Windows/rhubarb.exe");
+        } else {
+            // Render / Linux
+            rhubarbPath = path.resolve(__dirname, "../../../bin/rhubarb-lip-sync/rhubarb");
+        }
 
         console.log(`Looking for Rhubarb at: ${rhubarbPath}`);
 
         if (!fs.existsSync(rhubarbPath)) {
-            throw new Error(`Rhubarb executable not found at ${rhubarbPath}`);
+            console.warn(`⚠️ Rhubarb executable not found at ${rhubarbPath}. Will use fallback.`);
+            // Don't throw, just let it fall through to the catch block which handles fallback
+            throw new Error("Rhubarb not found");
         }
 
         try {
