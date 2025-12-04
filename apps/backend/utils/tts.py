@@ -1,10 +1,6 @@
+from gtts import gTTS
 import sys
 import os
-
-# Add local pylib to path for Render
-sys.path.append(os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__)))), "pylib"))
-
-from gtts import gTTS
 
 if __name__ == "__main__":
     if len(sys.argv) < 3:

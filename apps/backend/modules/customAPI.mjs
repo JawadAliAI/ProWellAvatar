@@ -66,7 +66,15 @@ const customAPI = {
                 }
 
                 const pythonCommand = process.platform === "win32" ? "python" : "python3";
-                const pythonProcess = spawn(pythonCommand, [ttsScript, "-", tempFile]);
+
+                // Set PYTHONPATH to include local pylib directory for Render
+                const pylibPath = path.join(__dirname, "..", "..", "..", "pylib");
+                const env = {
+                    ...process.env,
+                    PYTHONPATH: process.env.PYTHONPATH ? `${process.env.PYTHONPATH}:${pylibPath}` : pylibPath
+                };
+
+                const pythonProcess = spawn(pythonCommand, [ttsScript, "-", tempFile], { env });
 
                 pythonProcess.stdin.write(text);
                 pythonProcess.stdin.end();
