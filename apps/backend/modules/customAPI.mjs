@@ -4,7 +4,7 @@ import path from "path";
 
 dotenv.config();
 
-const API_BASE_URL = "https://finalchatdoc.onrender.com";
+const API_BASE_URL = "https://prowellchatdoc.onrender.com/";
 
 import { spawn } from "child_process";
 import { fileURLToPath } from "url";
