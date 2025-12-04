@@ -4,7 +4,7 @@ import path from "path";
 
 dotenv.config();
 
-const API_BASE_URL = "https://finalchatdoc.onrender.com";
+const API_BASE_URL = "https://prowellchatdoc.onrender.com";
 
 import { spawn } from "child_process";
 import { fileURLToPath } from "url";
@@ -109,36 +109,80 @@ const customAPI = {
     },
 
     stt: async (audioBuffer) => {
-        try {
-            console.log(`Sending STT request to ${API_BASE_URL}/stt`);
+        return new Promise((resolve, reject) => {
+            try {
+                console.log("Processing local STT with Vosk...");
 
-            // Create a Blob from the buffer
-            const blob = new Blob([audioBuffer], { type: 'audio/wav' });
+                const sttScript = path.join(__dirname, "..", "utils", "stt.py");
+                const modelPath = path.join(__dirname, "..", "models", "vosk-model-small-en-us-0.15");
 
-            const formData = new FormData();
-            formData.append("audio", blob, "input.wav");
+                const tempInput = path.join(__dirname, "..", "tmp", `stt_in_${Date.now()}_${Math.random().toString(36).substring(7)}.wav`);
+                const tempOutput = path.join(__dirname, "..", "tmp", `stt_out_${Date.now()}_${Math.random().toString(36).substring(7)}.wav`);
 
-            const controller = new AbortController();
-            const timeoutId = setTimeout(() => controller.abort(), 60000);
+                // Ensure tmp dir exists
+                const tmpDir = path.dirname(tempInput);
+                if (!fs.existsSync(tmpDir)) {
+                    fs.mkdirSync(tmpDir, { recursive: true });
+                }
 
-            const response = await fetch(`${API_BASE_URL}/stt`, {
-                method: "POST",
-                body: formData,
-                signal: controller.signal
-            });
-            clearTimeout(timeoutId);
+                // Write input buffer to file
+                fs.writeFileSync(tempInput, Buffer.from(audioBuffer));
 
-            if (!response.ok) {
-                const errorText = await response.text();
-                throw new Error(`STT API error: ${response.status} ${response.statusText} - ${errorText}`);
+                // Convert to 16kHz Mono WAV for Vosk using FFmpeg
+                // We use the execCommand from files.mjs logic here, but implemented directly for simplicity or import it
+                // Let's assume ffmpeg is in PATH (which we ensured in render-build.sh and files.mjs)
+
+                // Construct command to convert audio
+                // -ac 1: Mono
+                // -ar 16000: 16kHz sample rate
+                // -f wav: WAV format
+                const ffmpegCommand = `ffmpeg -y -i "${tempInput}" -ac 1 -ar 16000 -f wav "${tempOutput}"`;
+
+                exec(ffmpegCommand, (error, stdout, stderr) => {
+                    if (error) {
+                        console.error("FFmpeg conversion error:", stderr);
+                        resolve(""); // Return empty string on error
+                        return;
+                    }
+
+                    // Run Python Vosk Script
+                    const pythonCommand = process.platform === "win32" ? "python" : "python3";
+                    const pythonProcess = spawn(pythonCommand, [sttScript, tempOutput, modelPath]);
+
+                    let transcription = "";
+                    let errorOutput = "";
+
+                    pythonProcess.stdout.on("data", (data) => {
+                        transcription += data.toString();
+                    });
+
+                    pythonProcess.stderr.on("data", (data) => {
+                        errorOutput += data.toString();
+                    });
+
+                    pythonProcess.on("close", (code) => {
+                        // Cleanup
+                        try {
+                            if (fs.existsSync(tempInput)) fs.unlinkSync(tempInput);
+                            if (fs.existsSync(tempOutput)) fs.unlinkSync(tempOutput);
+                        } catch (e) { console.error("Cleanup error:", e); }
+
+                        if (code !== 0) {
+                            console.error(`Vosk STT Error: ${errorOutput}`);
+                            resolve("");
+                        } else {
+                            const text = transcription.trim();
+                            console.log(`STT Result: "${text}"`);
+                            resolve(text);
+                        }
+                    });
+                });
+
+            } catch (error) {
+                console.error("Local STT Error:", error);
+                resolve("");
             }
-
-            const data = await response.json();
-            return data.text;
-        } catch (error) {
-            console.error("STT API Error:", error);
-            return "I couldn't hear you.";
-        }
+        });
     },
 };
 

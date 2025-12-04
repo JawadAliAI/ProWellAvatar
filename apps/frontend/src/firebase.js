@@ -4,13 +4,13 @@ import { getAuth } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
 
 const firebaseConfig = {
-    apiKey: "AIzaSyCpitXOIAZKZ8udAE6UreUR7vN-czFs39M",
-    authDomain: "healbot-36975.firebaseapp.com",
-    projectId: "healbot-36975",
-    storageBucket: "healbot-36975.firebasestorage.app",
-    messagingSenderId: "676007096034",
-    appId: "1:676007096034:web:b00240a300f1ef205638bb",
-    measurementId: "G-M0JKZB5BC2"
+    apiKey: "AIzaSyDJFU-lqh-WBZAd6HvOqNTnz_3hF_AEBNQ",
+    authDomain: "prowell-21a58.firebaseapp.com",
+    projectId: "prowell-21a58",
+    storageBucket: "prowell-21a58.firebasestorage.app",
+    messagingSenderId: "522998581596",
+    appId: "1:522998581596:web:1f65cd22d1f27314b65999",
+    measurementId: "G-2B5FZHGMX0"
 };
 
 // Initialize Firebase

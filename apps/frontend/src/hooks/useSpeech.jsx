@@ -16,67 +16,80 @@ export const SpeechProvider = ({ children }) => {
     userIdRef.current = id;
   };
 
-  // Initialize Web Speech API
-  useEffect(() => {
-    if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
-      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-      const recognition = new SpeechRecognition();
+  const mediaRecorderRef = useRef(null);
+  const chunksRef = useRef([]);
 
-      recognition.continuous = false;
-      recognition.interimResults = false;
-      recognition.lang = 'en-US';
+  const startRecording = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      mediaRecorderRef.current = new MediaRecorder(stream);
+      chunksRef.current = [];
 
-      recognition.onresult = async (event) => {
-        const transcript = event.results[0][0].transcript;
-        console.log('🎤 Voice input:', transcript);
-
-        // Send the transcribed text to TTS endpoint with current user ID
-        await tts(transcript, userIdRef.current);
-      };
-
-      recognition.onerror = (event) => {
-        console.error('Speech recognition error:', event.error);
-        setRecording(false);
-        if (event.error === 'no-speech') {
-          alert('No speech detected. Please try again.');
-        } else if (event.error === 'not-allowed') {
-          alert('Microphone access denied. Please allow microphone access.');
-        } else {
-          alert(`Voice recognition error: ${event.error}`);
+      mediaRecorderRef.current.ondataavailable = (event) => {
+        if (event.data.size > 0) {
+          chunksRef.current.push(event.data);
         }
       };
 
-      recognition.onend = () => {
-        setRecording(false);
+      mediaRecorderRef.current.onstop = async () => {
+        const audioBlob = new Blob(chunksRef.current, { type: 'audio/webm' });
+
+        // Convert Blob to Base64
+        const reader = new FileReader();
+        reader.readAsDataURL(audioBlob);
+        reader.onloadend = async () => {
+          const base64Audio = reader.result.split(',')[1]; // Remove data URL prefix
+
+          setLoading(true);
+          try {
+            // Send to backend STS endpoint
+            const response = await fetch(`${backendUrl}/sts`, {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({
+                audio: base64Audio,
+                userId: userIdRef.current
+              }),
+            });
+
+            if (!response.ok) {
+              throw new Error(`Server error: ${response.statusText}`);
+            }
+
+            const data = await response.json();
+            if (data.error) {
+              throw new Error(data.error);
+            }
+
+            setMessages((messages) => [...messages, ...data.messages]);
+          } catch (error) {
+            console.error("STS Error:", error);
+            alert(`Error processing speech: ${error.message}`);
+          } finally {
+            setLoading(false);
+          }
+        };
       };
 
-      recognitionRef.current = recognition;
-    } else {
-      console.warn('Web Speech API not supported in this browser');
-    }
-  }, []);
-
-  const startRecording = async () => {
-    if (!recognitionRef.current) {
-      alert('Voice recognition is not supported in your browser. Please use Chrome, Edge, or Safari.');
-      return;
-    }
-
-    try {
+      mediaRecorderRef.current.start();
       setRecording(true);
-      recognitionRef.current.start();
-      console.log('🎤 Listening...');
+      console.log('🎤 Recording started...');
     } catch (err) {
-      console.error('Error starting recognition:', err);
-      setRecording(false);
-      alert('Failed to start voice recognition. Please try again.');
+      console.error('Error accessing microphone:', err);
+      alert('Could not access microphone. Please check permissions.');
     }
   };
 
   const stopRecording = () => {
-    if (recognitionRef.current && recording) {
-      recognitionRef.current.stop();
+    if (mediaRecorderRef.current && recording) {
+      mediaRecorderRef.current.stop();
       setRecording(false);
+      console.log('🎤 Recording stopped.');
+
+      // Stop all tracks to release microphone
+      mediaRecorderRef.current.stream.getTracks().forEach(track => track.stop());
     }
   };
 
@@ -95,7 +108,7 @@ export const SpeechProvider = ({ children }) => {
       setMessages((messages) => [...messages, ...response]);
     } catch (error) {
       console.error("TTS error:", error);
-      alert("Failed to get response. Please try again.");
+      alert(`Failed to get response: ${error.message}`);
     } finally {
       setLoading(false);
     }

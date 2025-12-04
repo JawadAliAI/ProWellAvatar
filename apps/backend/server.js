@@ -169,3 +169,4 @@ app.get("*", (req, res) => {
 app.listen(port, () => {
   console.log(`Jack is listening on port ${port}`);
 });
+// Server ready

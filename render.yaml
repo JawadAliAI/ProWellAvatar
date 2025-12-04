@@ -1,6 +1,6 @@
 services:
   - type: web
-    name: healbot-avatar
+    name: prowellavatarback
     env: node
     plan: free
     buildCommand: bash ./render-build.sh
@@ -12,7 +12,7 @@ services:
         value: 3.10.0
 
   - type: static
-    name: healbot-avatar-frontend
+    name: prowellavatarfront
     env: static
     plan: free
     buildCommand: npm install && npm run build --prefix apps/frontend
@@ -21,5 +21,5 @@ services:
       - key: VITE_API_URL
         fromService:
           type: web
-          name: healbot-avatar
+          name: prowellavatarback
           property: url

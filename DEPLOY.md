@@ -71,12 +71,12 @@ You can also deploy the frontend on Render as a separate Static Site.
 
 ## 🧪 Testing After Deployment
 
-1.  Open your deployed URL (e.g., `https://healbot-avatar.onrender.com`)
-2.  The frontend should load.
-3.  Send a message. The backend should process it using `edge-tts` and return the audio and animation.
+1.  Open your frontend URL: `https://prowellavatarfront.onrender.com`
+2.  The frontend should load and connect to the backend at `https://prowellavatarback.onrender.com`.
+3.  Send a message. The backend should process it using `edge-tts` and local `vosk` STT.
 
 ## 🆘 Troubleshooting
 
 - **Build Fails**: Check the logs. Ensure `render-build.sh` is running correctly.
-- **Audio Issues**: If TTS fails, check if `edge-tts` is working. The logs will show python errors.
-- **Connection Refused**: Ensure the port matches the environment variable.
+- **Audio Issues**: If TTS fails, check if `edge-tts` is working.
+- **Microphone Issues**: Ensure you have allowed microphone access in the browser.
