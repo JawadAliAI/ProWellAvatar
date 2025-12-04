@@ -29,13 +29,13 @@ export PYTHONPATH=$PYTHONPATH:$(pwd)/pylib
 if command -v pip3 &> /dev/null; then
     echo "Using pip3 to install requirements to local pylib..."
     pip3 install -r apps/backend/requirements.txt --target=pylib
-    echo "Verifying gTTS installation..."
-    python3 -c "import sys; sys.path.append('pylib'); from gtts import gTTS; print('✓ gTTS installed successfully')" || echo "✗ gTTS installation failed"
+    echo "Verifying edge-tts installation..."
+    python3 -c "import sys; sys.path.append('pylib'); import edge_tts; print('✓ edge-tts installed successfully')" || echo "✗ edge-tts installation failed"
 elif command -v pip &> /dev/null; then
     echo "Using pip to install requirements to local pylib..."
     pip install -r apps/backend/requirements.txt --target=pylib
-    echo "Verifying gTTS installation..."
-    python -c "import sys; sys.path.append('pylib'); from gtts import gTTS; print('✓ gTTS installed successfully')" || echo "✗ gTTS installation failed"
+    echo "Verifying edge-tts installation..."
+    python -c "import sys; sys.path.append('pylib'); import edge_tts; print('✓ edge-tts installed successfully')" || echo "✗ edge-tts installation failed"
 else
     echo "Error: pip not found. Cannot install Python dependencies."
     exit 1

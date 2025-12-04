@@ -1,15 +1,21 @@
-from gtts import gTTS
 import sys
 import os
+import asyncio
+import edge_tts
+
+async def generate_tts(text, output_file, voice="en-US-AriaNeural"):
+    communicate = edge_tts.Communicate(text, voice)
+    await communicate.save(output_file)
 
 if __name__ == "__main__":
     if len(sys.argv) < 3:
-        print("Usage: python tts.py <text_or_minus_for_stdin> <output_file> [lang]")
+        print("Usage: python tts.py <text_or_minus_for_stdin> <output_file> [voice]")
         sys.exit(1)
 
     text_arg = sys.argv[1]
     output_file = sys.argv[2]
-    lang = sys.argv[3] if len(sys.argv) > 3 else "en"
+    # Default to a nice English voice if not provided
+    voice = sys.argv[3] if len(sys.argv) > 3 else "en-US-AriaNeural"
 
     if text_arg == "-":
         text = sys.stdin.read()
@@ -22,9 +28,8 @@ if __name__ == "__main__":
         os.makedirs(dir_name, exist_ok=True)
 
     try:
-        # Generate TTS using gTTS
-        tts = gTTS(text=text, lang=lang, slow=False)
-        tts.save(output_file)
+        # Run the async generation
+        asyncio.run(generate_tts(text, output_file, voice))
         
         # Verify file was created and has size
         if os.path.exists(output_file) and os.path.getsize(output_file) > 0:
