@@ -188,91 +188,53 @@ export function Avatar(props) {
   };
 
   useFrame(() => {
-    // 1. Calculate Lip Sync Targets first
-    const appliedMorphTargets = [];
-
-    // Fallback mapping for avatars that lack specific visemes (using ARKit blendshapes)
-    // We prioritize these ARKit shapes as they usually look better/open wider
-    const morphTargetFallbacks = {
-      viseme_PP: ["mouthClose", "mouthPucker"],           // P, B, M - lips together
-      viseme_aa: ["jawOpen", "mouthOpen"],                // AA - open mouth, jaw down
-      viseme_O: ["mouthFunnel", "jawOpen"],               // O - rounded lips
-      viseme_U: ["mouthPucker", "mouthFunnel"],           // U - pursed lips
-      viseme_I: ["mouthSmile", "jawOpen"],                // I - smile with slight opening
-      viseme_TH: ["mouthOpen", "jawOpen"],                // TH - tongue between teeth
-      viseme_kk: ["jawOpen", "mouthOpen"],                // K, G - back of throat
-      viseme_FF: ["mouthUpperUpLeft", "mouthUpperUpRight"], // F, V - teeth on lower lip
-      viseme_DD: ["jawOpen", "mouthOpen"],                // D, T - tongue at teeth
-      viseme_nn: ["mouthClose", "jawOpen"],               // N - nasal sound
-      viseme_RR: ["mouthOpen", "mouthFunnel"],            // R - slight pucker
-      viseme_SS: ["mouthSmile", "mouthDimpleLeft", "mouthDimpleRight"], // S - teeth together, smile
-      viseme_sil: ["mouthClose"],                         // Silence
-      viseme_CH: ["mouthSmile", "mouthFunnel"],           // CH, J - lips forward
-      viseme_E: ["mouthSmile", "jawOpen"],                // E - wide smile
-    };
+    // Simplified lip sync for 2-morph-target avatars
+    let mouthOpenValue = 0;
+    let mouthSmileValue = 0;
 
     if (message && lipsync && audio && !audio.paused && !audio.ended) {
       const currentAudioTime = audio.currentTime;
+
       for (let i = 0; i < lipsync.mouthCues.length; i++) {
         const mouthCue = lipsync.mouthCues[i];
+
         if (currentAudioTime >= mouthCue.start && currentAudioTime <= mouthCue.end) {
-          const primaryTarget = visemesMapping[mouthCue.value];
+          const viseme = mouthCue.value;
 
-          // Priority: Check Fallbacks (ARKit) FIRST, then Primary (Viseme)
-          if (primaryTarget && morphTargetFallbacks[primaryTarget]) {
-            for (const fallback of morphTargetFallbacks[primaryTarget]) {
-              if (nodes.Wolf3D_Head.morphTargetDictionary && nodes.Wolf3D_Head.morphTargetDictionary[fallback] !== undefined) {
-                appliedMorphTargets.push(fallback);
-              }
-            }
+          // Map Rhubarb visemes to our 2 morph targets
+          switch (viseme) {
+            case 'X': // Silence
+              mouthOpenValue = 0.0;
+              mouthSmileValue = 0.0;
+              break;
+            case 'A': case 'B': case 'C': // Moderate opening
+              mouthOpenValue = 0.5;
+              mouthSmileValue = 0.3;
+              break;
+            case 'D': case 'E': case 'F': // Wide open
+              mouthOpenValue = 0.8;
+              mouthSmileValue = 0.1;
+              break;
+            case 'G': case 'H': // Smile sounds
+              mouthOpenValue = 0.4;
+              mouthSmileValue = 0.6;
+              break;
+            default:
+              mouthOpenValue = 0.3;
+              mouthSmileValue = 0.2;
           }
-
-          // If no fallbacks used, check primary
-          if (appliedMorphTargets.length === 0 && primaryTarget && nodes.Wolf3D_Head.morphTargetDictionary && nodes.Wolf3D_Head.morphTargetDictionary[primaryTarget] !== undefined) {
-            appliedMorphTargets.push(primaryTarget);
-          }
-
           break;
         }
       }
     }
 
-    // 2. Apply Facial Expressions (but DON'T reset active lip sync targets)
-    !setupMode &&
-      morphTargets.forEach((key) => {
-        // Skip if this key is being driven by lip sync
-        if (appliedMorphTargets.includes(key)) return;
+    // Apply the morph targets
+    lerpMorphTarget("mouthOpen", mouthOpenValue, 0.9);
+    lerpMorphTarget("mouthSmile", mouthSmileValue, 0.9);
 
-        const mapping = facialExpressions[facialExpression];
-        if (key === "eyeBlinkLeft" || key === "eyeBlinkRight") {
-          return; // eyes wink/blink are handled separately
-        }
-        if (mapping && mapping[key]) {
-          lerpMorphTarget(key, mapping[key], 0.1);
-        } else {
-          lerpMorphTarget(key, 0, 0.1);
-        }
-      });
-
+    // Handle blinking
     lerpMorphTarget("eyeBlinkLeft", blink ? 1 : 0, 0.5);
     lerpMorphTarget("eyeBlinkRight", blink ? 1 : 0, 0.5);
-
-    if (setupMode) {
-      return;
-    }
-
-    // 3. Apply Lip Sync Targets (with higher intensity)
-    appliedMorphTargets.forEach(target => {
-      lerpMorphTarget(target, 1, 0.8); // Increased speed/intensity
-    });
-
-    // Reset all other visemes to 0
-    Object.values(visemesMapping).forEach((value) => {
-      if (appliedMorphTargets.includes(value)) {
-        return;
-      }
-      // We don't need to reset here because the facial expression loop above already resets everything not in appliedMorphTargets!
-    });
   });
 
   useControls("FacialExpressions", {
