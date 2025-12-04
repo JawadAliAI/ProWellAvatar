@@ -20,19 +20,22 @@ npm install
 
 echo ""
 echo "Installing Python dependencies..."
-# Install Python packages (without --user flag for Render)
+
+# Create a local directory for Python packages
+mkdir -p pylib
+export PYTHONPATH=$PYTHONPATH:$(pwd)/pylib
+
+# Install Python packages to the local directory
 if command -v pip3 &> /dev/null; then
-    echo "Using pip3 to install requirements..."
-    pip3 install -r apps/backend/requirements.txt
+    echo "Using pip3 to install requirements to local pylib..."
+    pip3 install -r apps/backend/requirements.txt --target=pylib
     echo "Verifying gTTS installation..."
-    python3 -c "from gtts import gTTS; print('✓ gTTS installed successfully')" || echo "✗ gTTS installation failed"
-    python3 -c "import sys; print('Python path:', sys.path)"
+    python3 -c "import sys; sys.path.append('pylib'); from gtts import gTTS; print('✓ gTTS installed successfully')" || echo "✗ gTTS installation failed"
 elif command -v pip &> /dev/null; then
-    echo "Using pip to install requirements..."
-    pip install -r apps/backend/requirements.txt
+    echo "Using pip to install requirements to local pylib..."
+    pip install -r apps/backend/requirements.txt --target=pylib
     echo "Verifying gTTS installation..."
-    python -c "from gtts import gTTS; print('✓ gTTS installed successfully')" || echo "✗ gTTS installation failed"
-    python -c "import sys; print('Python path:', sys.path)"
+    python -c "import sys; sys.path.append('pylib'); from gtts import gTTS; print('✓ gTTS installed successfully')" || echo "✗ gTTS installation failed"
 else
     echo "Error: pip not found. Cannot install Python dependencies."
     exit 1
