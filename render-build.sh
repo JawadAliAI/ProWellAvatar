@@ -8,9 +8,9 @@ npm install
 echo "Installing Python dependencies..."
 # Ensure pip is available and install edge-tts
 if command -v pip3 &> /dev/null; then
-    pip3 install edge-tts
+    pip3 install -r apps/backend/requirements.txt
 elif command -v pip &> /dev/null; then
-    pip install edge-tts
+    pip install -r apps/backend/requirements.txt
 else
     echo "Error: pip not found. Cannot install Python dependencies."
     exit 1
