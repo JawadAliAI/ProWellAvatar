@@ -24,14 +24,14 @@ echo "Installing Python dependencies..."
 if command -v pip3 &> /dev/null; then
     echo "Using pip3 to install requirements..."
     pip3 install -r apps/backend/requirements.txt
-    echo "Verifying edge-tts installation..."
-    python3 -c "import edge_tts; print('✓ edge-tts installed successfully')" || echo "✗ edge-tts installation failed"
+    echo "Verifying gTTS installation..."
+    python3 -c "from gtts import gTTS; print('✓ gTTS installed successfully')" || echo "✗ gTTS installation failed"
     python3 -c "import sys; print('Python path:', sys.path)"
 elif command -v pip &> /dev/null; then
     echo "Using pip to install requirements..."
     pip install -r apps/backend/requirements.txt
-    echo "Verifying edge-tts installation..."
-    python -c "import edge_tts; print('✓ edge-tts installed successfully')" || echo "✗ edge-tts installation failed"
+    echo "Verifying gTTS installation..."
+    python -c "from gtts import gTTS; print('✓ gTTS installed successfully')" || echo "✗ gTTS installation failed"
     python -c "import sys; print('Python path:', sys.path)"
 else
     echo "Error: pip not found. Cannot install Python dependencies."
