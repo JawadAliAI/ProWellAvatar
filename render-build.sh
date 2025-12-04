@@ -20,17 +20,19 @@ npm install
 
 echo ""
 echo "Installing Python dependencies..."
-# Install Python packages with --user flag for Render
+# Install Python packages (without --user flag for Render)
 if command -v pip3 &> /dev/null; then
     echo "Using pip3 to install requirements..."
-    pip3 install --user -r apps/backend/requirements.txt
+    pip3 install -r apps/backend/requirements.txt
     echo "Verifying edge-tts installation..."
     python3 -c "import edge_tts; print('✓ edge-tts installed successfully')" || echo "✗ edge-tts installation failed"
+    python3 -c "import sys; print('Python path:', sys.path)"
 elif command -v pip &> /dev/null; then
     echo "Using pip to install requirements..."
-    pip install --user -r apps/backend/requirements.txt
+    pip install -r apps/backend/requirements.txt
     echo "Verifying edge-tts installation..."
     python -c "import edge_tts; print('✓ edge-tts installed successfully')" || echo "✗ edge-tts installation failed"
+    python -c "import sys; print('Python path:', sys.path)"
 else
     echo "Error: pip not found. Cannot install Python dependencies."
     exit 1
