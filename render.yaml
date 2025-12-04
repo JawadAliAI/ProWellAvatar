@@ -25,4 +25,3 @@ services:
           type: web
           name: prowellavatarback
           property: host
-          envVarKey: VITE_API_URL
